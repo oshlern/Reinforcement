@@ -1,12 +1,20 @@
 import numpy as np
 import random, copy
+import sklearn
+from abc import ABCMeta, abstractmethod, abstractproperty
+
 
 # def normalize(weights):
 #     minW, maxW = np.amin(weights), np.amax(weights)
 #     return np.divide(np.subtract(weights, minW), np.sum(weights))
 
-from abc import ABCMeta, abstractmethod, abstractproperty
 
+class State(object):
+    def __init__(self, state):
+        self.state = state
+
+    def __hash__(self):
+        return hash(",".join(self.state))
 
 class Q:
     __metaclass__ = ABCMeta
@@ -33,22 +41,38 @@ class Q:
         newVal = np.add(currentVal, np.multiply(self.learningRate, np.subtract(val, currentVal)))
         self.setQ(state, move, newVal)
 
-
 class QMatrix(Q):
     # def __init__(self, learningRate=0.1, discountRate=0.9, randomness=0.2):
     #     super(Q, self).__init__(learningRate, discountRate)
+    # stateIsList = True
+    # actionIsList = False
 
     def initializeQ(self):
         self.q = {}
 
     def getQ(self, state, action):
-        return 0
+        if type(state) == list:
+            state = str(state)
+        if type(action) == list:
+            action = str(action)
+        return self.q.get((state, action), 0)
 
     def setQ(self, state, action, val):
-        return 0
+        if type(state) == list:
+            state = str(state)
+        if type(action) == list:
+            action = str(action)
+        current = self.q.get((state, action), 0)
+        new = np.add(current, np.multiply(self.learningRate, np.subtract(val, current)))
+        self.q[(state, action)] = new
+
+# class QDeep(Q):
+#     def __init__(self, learningRate=0.1, )
+
 
 mat = QMatrix()
-print mat.q
+mat.setQ([1],2,3)
+print mat.getQ([1],2)
 
 #     def updateQ(state, nextState, possibleActions, action, reward):
 #     #     Q(state, action) = R(state, action) + Gamma * Max[Q(next state, all actions)]
