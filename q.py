@@ -1,6 +1,6 @@
 import numpy as np
 import random, copy
-import sklearn
+from sklearn.linear_model import SGDRegressor
 from abc import ABCMeta, abstractmethod, abstractproperty
 
 
@@ -8,13 +8,6 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 #     minW, maxW = np.amin(weights), np.amax(weights)
 #     return np.divide(np.subtract(weights, minW), np.sum(weights))
 
-
-class State(object):
-    def __init__(self, state):
-        self.state = state
-
-    def __hash__(self):
-        return hash(",".join(self.state))
 
 class Q:
     __metaclass__ = ABCMeta
@@ -36,10 +29,16 @@ class Q:
 
     # q = abstractproperty(getQ, setQ)
 
-    def update(self, state, action, val):
-        currentVal = self.get(state, action)
+    def update(self, state, action, val): #move into actionUpdate
+        currentVal = self.getQ(state, action)
         newVal = np.add(currentVal, np.multiply(self.learningRate, np.subtract(val, currentVal)))
         self.setQ(state, move, newVal)
+
+    def actionUpdate(self, state, nextState, nextActions, action, reward=0):
+        nextQs = [self.getQ(nextState, nextAction) for nextAction in nextActions]
+        maxNext = np.amax(nextQs)
+        val = np.add(reward, np.multiply(self.discountRate, maxNext))
+        self.update(state, action, val)
 
 class QMatrix(Q):
     # def __init__(self, learningRate=0.1, discountRate=0.9, randomness=0.2):
@@ -62,12 +61,20 @@ class QMatrix(Q):
             state = str(state)
         if type(action) == list:
             action = str(action)
-        current = self.q.get((state, action), 0)
-        new = np.add(current, np.multiply(self.learningRate, np.subtract(val, current)))
         self.q[(state, action)] = new
 
-# class QDeep(Q):
-#     def __init__(self, learningRate=0.1, )
+class QDeep(Q):
+    def __init__(self, learningRate=0.1, )
+        super(QDeep, self).__init__(learningRate, discountRate)
+        n_samples, n_features = 10, 5
+
+    def initializeQ(self):
+        self.q = linear_model.SGDRegressor()
+np.random.seed(0)
+y = np.random.randn(n_samples)
+X = np.random.randn(n_samples, n_features)
+clf = linear_model.SGDRegressor()
+clf.fit(X, y)
 
 
 mat = QMatrix()
