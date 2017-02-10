@@ -11,8 +11,8 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 class Q:
     __metaclass__ = ABCMeta
-    def __init__(self, learningRate=0.1, discountRate=0.9):
-        self.learningRate, self.discountRate = learningRate, discountRate
+    def __init__(self, learningRate=0.1, discountRate=0.9, params=None):
+        self.learningRate, self.discountRate, self.params = learningRate, discountRate, params
         self.initializeQ()
 
     @abstractmethod
@@ -61,25 +61,49 @@ class QMatrix(Q):
             state = str(state)
         if type(action) == list:
             action = str(action)
-        self.q[(state, action)] = new
+        self.q[(state, action)] = val
 
 class QDeep(Q):
-    def __init__(self, learningRate=0.1, )
-        super(QDeep, self).__init__(learningRate, discountRate)
-        n_samples, n_features = 10, 5
+    def __init__(self, learningRate=0.1, discountRate=0.9):
+        super(QDeep, self).__init__(learningRate=learningRate, discountRate=discountRate)
 
-    def initializeQ(self):
-        self.q = linear_model.SGDRegressor()
-np.random.seed(0)
-y = np.random.randn(n_samples)
-X = np.random.randn(n_samples, n_features)
-clf = linear_model.SGDRegressor()
-clf.fit(X, y)
+    def initializeQ(self, loss='squared_loss', penalty='l2', alpha=0.0001, l1_ratio=0.15, fit_intercept=True, n_iter=5, shuffle=True, verbose=0, epsilon=0.1, random_state=None, learning_rate='invscaling', eta0=0.01, power_t=0.25, warm_start=False, average=False):
+        self.q = SGDRegressor(loss=loss, penalty=penalty, alpha=alpha, l1_ratio=l1_ratio, fit_intercept=fit_intercept, n_iter=n_iter, shuffle=shuffle, verbose=verbose, epsilon=epsilon, random_state=random_state, learning_rate=learning_rate, eta0=eta0, power_t=power_t, warm_start=warm_start, average=average)
 
+    def getQ(self, state, action):
+        if type(state) == list:
+            state = np.array(state)
+        X = np.append(state.flatten(), action)
+        try:
+            return self.q.predict(np.array([X])) #doesn't work if model hasn't been fit yet
+        except:
+            return 0
 
-mat = QMatrix()
+    def setQ(self, state, action, val):
+        if type(state) == list:
+            state = np.array(state)
+        X = np.append(state.flatten(), action)
+        self.q.partial_fit(np.array([X]), np.array([val]))
+
+# np.random.seed(0)
+# y = np.random.randn(n_samples)
+# X = np.random.randn(n_samples, n_features)
+# clf = linear_model.SGDRegressor()
+# clf.fit(X, y)
+
+# MLPRegressor(hidden_layer_sizes=(100, ), activation='relu', solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True, random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)[source]
+
+mat = QDeep()
 mat.setQ([1],2,3)
 print mat.getQ([1],2)
+
+
+# __init__(self, learningRate=0.1, discountRate=0.9, hidden_layer_sizes=(100, ), activation='relu', solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True, random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+        # {'hidden_layer_sizes': (100, ), 'activation': 'relu', 'solver': 'adam', 'alpha': 0.0001, 'batch_size': 'auto', 'learning_rate': 'constant', 'learning_rate_init': 0.001, 'power_t': 0.5, 'max_iter': 200, 'shuffle': True, 'random_state': None, 'tol': 0.0001, 'verbose': False, 'warm_start': False, 'momentum': 0.9, 'nesterovs_momentum': True, 'early_stopping': False, 'validation_fraction': 0.1, 'beta_1': 0.9, 'beta_2': 0.999, 'epsilon': 1e-08})
+        # fix param handling
+        # self.hidden_layer_sizes, self.activation, self.solver, self.alpha, self.batch_size, self.learning_rate, self.learning_rate_init, self.power_t, self.max_iter, self.shuffle=, self.random_state, self.tol, self.verbose, self.warm_start, self.momentum, self.nesterovs_momentum, self.early_stopping, self.validation_fraction, self.beta_1, self.beta_2, self.epsilon = hidden_layer_sizes, activation, solver, alpha, batch_size, learning_rate, learning_rate_init, power_t, max_iter, shuffle=, random_state, tol, verbose, warm_start, momentum, nesterovs_momentum, early_stopping, validation_fraction, beta_1, beta_2, epsilon
+        # hidden_layer_sizes=self.hidden_layer_sizes, activation=self.activation, solver=self.solver, alpha=self.alpha, batch_size=self.batch_size, learning_rate=self.learning_rate, learning_rate_init=self.learning_rate_init, power_t=self.power_t, max_iter=self.max_iter, shuffle=self.shuffle, random_state=self.random_state, tol=self.tol, verbose=self.verbose, warm_start=self.warm_start, momentum=self.momentum, nesterovs_momentum=self.nesterovs_momentum, early_stopping=self.early_stopping, validation_fraction=self.validation_fraction, beta_1=self.beta_1, beta_2=self.beta_2, epsilon=self.epsilon)
+
 
 #     def updateQ(state, nextState, possibleActions, action, reward):
 #     #     Q(state, action) = R(state, action) + Gamma * Max[Q(next state, all actions)]
