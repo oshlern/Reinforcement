@@ -11,8 +11,8 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 class Q:
     __metaclass__ = ABCMeta
-    def __init__(self, learningRate=0.1, discountRate=0.9, params=None):
-        self.learningRate, self.discountRate, self.params = learningRate, discountRate, params
+    def __init__(self, learningRate=0.1, discountRate=0.9, params=None, weighted=True):
+        self.learningRate, self.discountRate, self.params, self.weighted = learningRate, discountRate, params, weighted
         self.initializeQ()
 
     @abstractmethod
@@ -39,6 +39,38 @@ class Q:
         maxNext = np.amax(nextQs)
         val = np.add(reward, np.multiply(self.discountRate, maxNext))
         self.update(state, action, val)
+
+    def action(self, env, state, actions):
+        if np.random() < self.randomness:
+            action = np.random.choice(actions)
+        elif self.weighted: # a random choice with a weighted distribution
+            action = self.weightedAction(state, action)
+        else:
+            action = 0 #TODO: best action
+        reward, nextState, nextActions = env.act(action)
+        if nextActions != None:
+            self.actionUpdate(state, nextState, nextActions, action, reward=reward)
+        else:
+            self.update(state, action, reward)
+        
+
+    def weightedAction(self, state, actions):
+        vals = [self.getQ(state, action) for action in actions]
+        minVal = np.amin(vals)
+        normVals = np.divide(np.subtract(vals, minVal), np.sum(vals))
+        action = np.random.choice(actions, p=normVals)
+        return action
+
+    def bestAction(self, state, actions):
+        vals = [self.getQ(state, action) for action in actions]
+        maxVal = np.amax(vals)
+        action = actions[vals.index(maxVal)]
+        return action
+
+    def noLearnAction(self, state, actions):
+        return self.bestAction(state, actions) 
+
+
 
 class QMatrix(Q):
     # def __init__(self, learningRate=0.1, discountRate=0.9, randomness=0.2):
@@ -97,129 +129,6 @@ mat = QDeep()
 mat.setQ([1],2,3)
 print mat.getQ([1],2)
 
-
-# __init__(self, learningRate=0.1, discountRate=0.9, hidden_layer_sizes=(100, ), activation='relu', solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True, random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
-        # {'hidden_layer_sizes': (100, ), 'activation': 'relu', 'solver': 'adam', 'alpha': 0.0001, 'batch_size': 'auto', 'learning_rate': 'constant', 'learning_rate_init': 0.001, 'power_t': 0.5, 'max_iter': 200, 'shuffle': True, 'random_state': None, 'tol': 0.0001, 'verbose': False, 'warm_start': False, 'momentum': 0.9, 'nesterovs_momentum': True, 'early_stopping': False, 'validation_fraction': 0.1, 'beta_1': 0.9, 'beta_2': 0.999, 'epsilon': 1e-08})
-        # fix param handling
-        # self.hidden_layer_sizes, self.activation, self.solver, self.alpha, self.batch_size, self.learning_rate, self.learning_rate_init, self.power_t, self.max_iter, self.shuffle=, self.random_state, self.tol, self.verbose, self.warm_start, self.momentum, self.nesterovs_momentum, self.early_stopping, self.validation_fraction, self.beta_1, self.beta_2, self.epsilon = hidden_layer_sizes, activation, solver, alpha, batch_size, learning_rate, learning_rate_init, power_t, max_iter, shuffle=, random_state, tol, verbose, warm_start, momentum, nesterovs_momentum, early_stopping, validation_fraction, beta_1, beta_2, epsilon
-        # hidden_layer_sizes=self.hidden_layer_sizes, activation=self.activation, solver=self.solver, alpha=self.alpha, batch_size=self.batch_size, learning_rate=self.learning_rate, learning_rate_init=self.learning_rate_init, power_t=self.power_t, max_iter=self.max_iter, shuffle=self.shuffle, random_state=self.random_state, tol=self.tol, verbose=self.verbose, warm_start=self.warm_start, momentum=self.momentum, nesterovs_momentum=self.nesterovs_momentum, early_stopping=self.early_stopping, validation_fraction=self.validation_fraction, beta_1=self.beta_1, beta_2=self.beta_2, epsilon=self.epsilon)
-
-
-#     def updateQ(state, nextState, possibleActions, action, reward):
-#     #     Q(state, action) = R(state, action) + Gamma * Max[Q(next state, all actions)]
-#         strNextState = str(nextState)
-#         maxNext = np.amax([self.Q.get((strNextState, action), 0) for action in possibleActions])
-#         newVal = reward + self.discountRate * maxNext
-#         currentVal = self.Q.get((str(state), move), 0)
-#         self.Q[(strState, move)] = currentVal + self.learningRate * (val - currentVal)
-
-#     def action(self, env, state, actions):
-#          strState = str(state)
-#          if np.random() < self.randomness:
-#             move = np.random.choice(actions)
-#         else: # a random choice with a weighted distribution
-#             strState = str(state)
-#             vals = [self.Q.get((strState, action), 0) for action in actions]
-#             minVal = np.amin(vals)
-#             normVals = np.divide(np.subtract(vals, minVal), np.sum(vals))
-#             action = np.random.choice(actions, p=normVals)
-#             # move = self.bestQ(state, actions)
-#         reward, nextState, possibleActions = env.act(action)
-#         #  TODO: NEXT STATE
-#         strNextState = str(nextState)
-#         maxNext = np.amax([self.Q.get((strNextState, action), 0) for action in possibleActions])
-#         newVal = reward + self.discountRate * maxNext
-#         currentVal = self.Q.get((str(state), move), 0)
-#         self.Q[(strState, move)] = currentVal + self.learningRate * (val - currentVal)
-#         return move
-
-#     def action(self, env, state, actions):
-#         bestVal = np.amax([self.Q.get((strNextState, action), 0) for action in possibleActions])
-#         currentVal = self.Q.get((str(state), move), 0)
-#         self.Q[(strState, move)] = currentVal + self.learningRate * (bestVal + reward - currentVal)
-
-#     # Look further ahead?
-
-#     def bestQ(self, state, actions):
-#         vals = [self.Q.get((str(state), action), 0) for action in actions]
-#         bestVal = np.amax(vals)
-#         return bestVal, actions[vals.index(bestValIndex)]
-
-#     # def trainAction(self, state, possibleMoves, numEmpty):
-#     #     move = possibleMoves.pop(random.randrange(numEmpty)) # make not always random? # possibly implement a random choice with weighted distribution?
-#     #     if len(possibleMoves) <= 1:
-#     #         return move
-#     #     newState = np.negative(self.nextState(state, move))
-#     #     newMoves = copy.deepcopy(possibleMoves)
-#     #     newMoves.remove(move)
-
-#     def train(self, state, oldState, move, possibleMoves):
-#         strState, strOldState = str(state), str(oldState)
-#         val = np.amax([self.Q.get((strState, possibleMove), 0) for possibleMove in possibleMoves])
-#         val = np.multiply(val, np.negative(self.discountRate))
-#         currentVal = self.Q.get((strOldState, move), 0)
-#         self.Q[(strOldState, move)] = np.add(currentVal, np.multiply(self.learningRate, np.subtract(val, currentVal)))
-
-    
-
-#     def noLearnAction(self, state, actions):
-#         return self.bestQ(state, actions) 
-
-
-#     # def end(self, reward, winner, playerNum, state, move):
-#     #     state = self.boolState(state, playerNum)
-#     #     oldState = np.negative(self.nextState(state, move, change=0))
-#     #     self.R[(str(oldState), move)] = reward
-#     #     self.updateQVal(oldState, move, reward)
-#         # if self.debugMode: print self.Q.values()
-
-# import numpy as np
-# import re, random, copy
-# from board import Board
-# from Agents.compileAgents import Agent, Human, RandomChoose, Minimax, compileAgents
-
-
-# class Q(Agent):
-#     def __init__(self, boardParams, learningRate=0.3, discountRate=0.9, randomness=0.2, debugMode=False):
-#         super(Q, self).__init__(boardParams, debugMode=debugMode)
-#         self.learningRate, self.discountRate, self.randomness = learningRate, discountRate, randomness
-#         self.Q, self.R = {}, {}
-#         self.withLearn = True
-#         self.debugMode = debugMode
-
-#     def updateQVal(self, state, move, val):
-#         currentVal = self.Q.get((str(state), move), 0)
-#         self.Q[(str(state), move)] = currentVal + self.learningRate * (val - currentVal)
-
-#     def action(self, board, state, turn, playerNum, possibleMoves):
-#         state = self.boolState(state, playerNum)
-#         move = (0, 0)
-#         if random.random() < self.randomness:
-#             move = random.choice(possibleMoves)
-#         else:
-#             move = self.bestQ(state, possibleMoves) # possibly implement a random choice with weighted distribution?
-#         if self.withLearn: self.updateQ(state, possibleMoves, move)
-#         return move
-
-#     def updateQ(self, state, possibleMoves, move):
-#         if self.debugMode: print "move" + str(move)
-#         if len(possibleMoves) <= 1:
-#             if self.debugMode: print "moves", possibleMoves
-#             return
-#         newState = np.negative(self.nextState(state, move))
-#         newMoves = copy.deepcopy(possibleMoves)
-#         newMoves.remove(move)
-#         val = self.bestQ(newState, newMoves, returnVal=True) # Opponent's best move
-#         val *= -self.discountRate
-#         if self.debugMode: print val
-#         self.updateQVal(state, move, val)
-
-#     def end(self, reward, winner, playerNum, state, move):
-#         state = self.boolState(state, playerNum)
-#         oldState = np.negative(self.nextState(state, move, change=0))
-#         self.R[(str(oldState), move)] = reward
-#         self.updateQVal(oldState, move, reward)
-#         # if self.debugMode: print self.Q.values()
 
 #     def train(self, iterations, withRand=True):
 #         agents = [self, RandomChoose(self.boardParams)]
