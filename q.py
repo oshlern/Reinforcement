@@ -2,18 +2,19 @@ import numpy as np
 import random, copy
 from sklearn.linear_model import SGDRegressor
 from abc import ABCMeta, abstractmethod, abstractproperty
-
+from Agents.abstractAgent import Agent
 
 # def normalize(weights):
 #     minW, maxW = np.amin(weights), np.amax(weights)
 #     return np.divide(np.subtract(weights, minW), np.sum(weights))
 
 
-class Q:
+class Q(Agent):
     __metaclass__ = ABCMeta
-    def __init__(self, learningRate=0.1, discountRate=0.9, params=None, weighted=True):
-        self.learningRate, self.discountRate, self.params, self.weighted = learningRate, discountRate, params, weighted
+    def __init__(self, learningRate=0.1, discountRate=0.9, params=None, weighted=True, randomness = 0.3):
+        self.learningRate, self.discountRate, self.params, self.weighted, self.randomness = learningRate, discountRate, params, weighted, randomness
         self.initializeQ()
+        self.R = {}
 
     @abstractmethod
     def initializeQ(self):
@@ -32,7 +33,7 @@ class Q:
     def update(self, state, action, val): #move into actionUpdate
         currentVal = self.getQ(state, action)
         newVal = np.add(currentVal, np.multiply(self.learningRate, np.subtract(val, currentVal)))
-        self.setQ(state, move, newVal)
+        self.setQ(state, action, newVal)
 
     def actionUpdate(self, state, nextState, nextActions, action, reward=0):
         nextQs = [self.getQ(nextState, nextAction) for nextAction in nextActions]
@@ -41,25 +42,28 @@ class Q:
         self.update(state, action, val)
 
     def action(self, env, state, actions):
-        if np.random() < self.randomness:
-            action = np.random.choice(actions)
+        if np.random.random() < self.randomness:
+            action = actions[np.random.randint(len(actions))]
         elif self.weighted: # a random choice with a weighted distribution
-            action = self.weightedAction(state, action)
+            action = self.weightedAction(state, actions)
         else:
             action = 0 #TODO: best action
         reward, nextState, nextActions = env.act(action)
-        if nextActions != None:
+        if len(nextActions) != 0:
             self.actionUpdate(state, nextState, nextActions, action, reward=reward)
         else:
             self.update(state, action, reward)
         
-
     def weightedAction(self, state, actions):
         vals = [self.getQ(state, action) for action in actions]
         minVal = np.amin(vals)
-        normVals = np.divide(np.subtract(vals, minVal), np.sum(vals))
-        action = np.random.choice(actions, p=normVals)
-        return action
+        if minVal == np.amax(vals) == 0:
+            action = np.random.choice(len(actions))
+        else:
+            normVals = np.divide(np.subtract(vals, minVal), np.sum(vals))
+            print actions, type(actions), normVals
+            action = np.random.choice(len(actions), p=normVals)
+        return actions[action]
 
     def bestAction(self, state, actions):
         vals = [self.getQ(state, action) for action in actions]
@@ -68,7 +72,10 @@ class Q:
         return action
 
     def noLearnAction(self, state, actions):
-        return self.bestAction(state, actions) 
+        return self.bestAction(state, actions)
+
+    def end(self, state, reward):
+        self.R[str(state)] = reward
 
 
 
@@ -82,14 +89,14 @@ class QMatrix(Q):
         self.q = {}
 
     def getQ(self, state, action):
-        if type(state) == list:
+        if type(state) == list or type(state) == np.ndarray:
             state = str(state)
         if type(action) == list:
             action = str(action)
         return self.q.get((state, action), 0)
 
     def setQ(self, state, action, val):
-        if type(state) == list:
+        if type(state) == list or type(state) == np.ndarray:
             state = str(state)
         if type(action) == list:
             action = str(action)
@@ -128,6 +135,8 @@ class QDeep(Q):
 mat = QDeep()
 mat.setQ([1],2,3)
 print mat.getQ([1],2)
+
+
 
 
 #     def train(self, iterations, withRand=True):
