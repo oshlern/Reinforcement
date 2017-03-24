@@ -44,7 +44,7 @@ class Board:
         return rows, total
 
     def act(self, action): # return reward, next state, next moves
-        if action not in self.emptyIndices: # Valid move # handle better
+        if action not in self.emptyIndices: # Valid move # handle 
             return False, False, False
         self.state[action] = self.currentPlayer
         self.emptyIndices.remove(action)
