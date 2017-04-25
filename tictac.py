@@ -72,6 +72,7 @@ class Board:
                 break
             if self.debugMode: self.display()
             self.currentPlayer = (self.currentPlayer % self.numPlayers) + 1
+        return self.winner
 
     def trainAct(self, action):
         if action not in self.emptyIndices: # Valid move
@@ -101,6 +102,7 @@ class Board:
             self.agents[winner-1].end(self.state, 1)
             for agent in self.agents[:winner-1] + self.agents[winner:]:
                 agent.end(self.state, -1)
+        self.winner = winner
 
     def checkWin(self):
         # TODO: Optimize knowing the last move and player who made it, only check the appropriate rows. If all full, run checkTie()
@@ -140,16 +142,18 @@ class Board:
         oldMode = copy.copy(self.debugMode)
         self.debugMode = True
         self.agents = [Human(boardParams), agent]
-        self.runGames()
+        self.run()
         self.debugMode = oldMode
 
-    def test(self, agent, numGames, withRand=False, withLearn=False): #make efficient like train
+    def test(self, agent, numGames=100, withRand=False, withLearn=False): #make efficient like train
         if withLearn:
             wasWin = copy.deepcopy(agent.withLearn)
             agent.withLearn = False
         if withRand:
             wasRand = copy.deepcopy(agent.randomness)
             agent.randomness = 0
+        wasDebug = copy.deepcopy(self.debugMode)
+        self.debugMode = False
         agents = [agent, RandomChoose(boardParams)]
         self.agents = agents
         firstWins = self.runGames(numGames=numGames, shuffle=False)
@@ -160,6 +164,8 @@ class Board:
             agent.withLearn = wasWin
         if withRand:
             agent.randomness = wasRand
+        self.debugMode = wasDebug
+        print firstWins, secondWins
         return [("wins", firstWins.count(1), secondWins.count(2)), ("losses", firstWins.count(2), secondWins.count(1)), ("ties", firstWins.count(0), secondWins.count(0))]
 
     def checkWinSpecific(self, state, move):

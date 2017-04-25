@@ -1,6 +1,6 @@
 import numpy as np
 import random, copy
-from sklearn.linear_model import SGDRegressor
+from sklearn.linear_model import MLPRegressor
 from abc import ABCMeta, abstractmethod, abstractproperty
 from Agents.abstractAgent import Agent
 
@@ -106,13 +106,13 @@ class QDeep(Q):
     def __init__(self, learningRate=0.1, discountRate=0.9):
         super(QDeep, self).__init__(learningRate=learningRate, discountRate=discountRate)
 
-    def initializeQ(self, loss='squared_loss', penalty='l2', alpha=0.0001, l1_ratio=0.15, fit_intercept=True, n_iter=5, shuffle=True, verbose=0, epsilon=0.1, random_state=None, learning_rate='invscaling', eta0=0.01, power_t=0.25, warm_start=False, average=False):
-        self.q = SGDRegressor(loss=loss, penalty=penalty, alpha=alpha, l1_ratio=l1_ratio, fit_intercept=fit_intercept, n_iter=n_iter, shuffle=shuffle, verbose=verbose, epsilon=epsilon, random_state=random_state, learning_rate=learning_rate, eta0=eta0, power_t=power_t, warm_start=warm_start, average=average)
+    def initializeQ(self, hidden_layer_sizes=(100, ), activation='relu', solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True, random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)
+        self.q = MLPRegressor(hidden_layer_sizes=hidden_layer_sizes, solver=solver, alpha=alpha, batch_size=batch_size, learning_rate=learning_rate, learning_rate_init=learning_rate_init, power_t=power_t, max_iter=max_iter, shuffle=shuffle, random_state=random_state, tol=tol, verbose=verbose, warm_start=warm_start, momentum=momentum, nesterovs_momentum=nesterovs_momentum, early_stopping=early_stopping, validation_fraction=validation_fraction, beta_1=beta_1, beta_2=beta_2, epsilon=epsilon)
 
     def getQ(self, state, action):
         if type(state) == list:
             state = np.array(state)
-        X = np.append(state.flatten(), action)
+        X = np.array([np.append(state.flatten(), action)]).T
         try:
             return self.q.predict(np.array([X])) #doesn't work if model hasn't been fit yet
         except:
@@ -121,7 +121,7 @@ class QDeep(Q):
     def setQ(self, state, action, val):
         if type(state) == list:
             state = np.array(state)
-        X = np.append(state.flatten(), action)
+        X = np.ravel(np.append(state.flatten(), action))
         self.q.partial_fit(np.array([X]), np.array([val]))
 
 # np.random.seed(0)
@@ -132,9 +132,9 @@ class QDeep(Q):
 
 # MLPRegressor(hidden_layer_sizes=(100, ), activation='relu', solver='adam', alpha=0.0001, batch_size='auto', learning_rate='constant', learning_rate_init=0.001, power_t=0.5, max_iter=200, shuffle=True, random_state=None, tol=0.0001, verbose=False, warm_start=False, momentum=0.9, nesterovs_momentum=True, early_stopping=False, validation_fraction=0.1, beta_1=0.9, beta_2=0.999, epsilon=1e-08)[source]
 
-mat = QDeep()
-mat.setQ([1],2,3)
-print mat.getQ([1],2)
+# mat = QDeep()
+# mat.setQ([1],2,3)
+# print mat.getQ([1],2)
 
 
 
